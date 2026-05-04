@@ -1,5 +1,5 @@
 const express = require("express");
-const userController = require("./user.controller");
+const registrationRequestController = require("./registrationRequest.controller");
 const authMiddleware = require("../../middlewares/auth.middleware");
 const requireRole = require("../../middlewares/role.middleware");
 
@@ -9,14 +9,21 @@ router.get(
   "/",
   authMiddleware,
   requireRole("admin"),
-  userController.getUsers
+  registrationRequestController.getRegistrationRequests
 );
 
 router.patch(
-  "/:id/status",
+  "/:id/approve",
   authMiddleware,
   requireRole("admin"),
-  userController.updateUserStatus
+  registrationRequestController.approveRegistrationRequest
+);
+
+router.patch(
+  "/:id/reject",
+  authMiddleware,
+  requireRole("admin"),
+  registrationRequestController.rejectRegistrationRequest
 );
 
 module.exports = router;

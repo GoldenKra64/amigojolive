@@ -4,8 +4,7 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -17,6 +16,12 @@ enum UserStatus {
   INACTIVO
   PENDIENTE
   BLOQUEADO
+}
+
+enum RegistrationRequestStatus {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
 }
 
 model Role {
@@ -48,6 +53,8 @@ model User {
 
   posts              Post[]
   comments           Comment[]
+
+  reviewedRegistrationRequests RegistrationRequest[] @relation("ReviewedRegistrationRequests")
 
   lastLoginAt        DateTime?
   createdAt          DateTime   @default(now())
@@ -117,4 +124,30 @@ model Tag {
   posts       Post[]   // Relación Muchos a Muchos para etiquetar los post
 
   @@map("etiquetas")
+}
+
+model RegistrationRequest {
+  id                 Int                       @id @default(autoincrement())
+  institutionalEmail String
+  passwordHash       String?
+  firstName          String
+  lastName           String
+  area               String?
+  description        String?
+
+  status             RegistrationRequestStatus @default(PENDIENTE)
+
+  reviewedById       Int?
+  reviewedBy         User?                     @relation("ReviewedRegistrationRequests", fields: [reviewedById], references: [id])
+
+  reviewComment      String?
+  reviewedAt         DateTime?
+
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([institutionalEmail])
+  @@index([status])
+
+  @@map("solicitudes_registro")
 }
