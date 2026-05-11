@@ -5,6 +5,7 @@ const registrationRequestRoutes = require("../modules/registrationRequests/regis
 const userRoutes = require("../modules/users/user.routes");
 const profileRoutes = require("../modules/profiles/profile.routes");
 const chatbotRoutes = require("../modules/chatbot/chatbot.routes");
+const publicationRoutes = require("../modules/publications/publication.routes");
 
 const router = express.Router();
 
@@ -19,6 +20,7 @@ router.use("/auth", authRoutes);
 router.use("/admin/registration-requests", registrationRequestRoutes);
 router.use("/admin/users", userRoutes);
 router.use("/profiles", profileRoutes);
+router.use("/publications", publicationRoutes);
 
 // Chatbot
 router.use("/chatbot", chatbotRoutes);
