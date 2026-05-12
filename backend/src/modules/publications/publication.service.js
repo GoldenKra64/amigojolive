@@ -1,31 +1,5 @@
 const prisma = require("../../lib/prisma");
 
-function validateCreatePublicationInput({ title, content, isAnonymous }) {
-  if (!title || typeof title !== "string" || !title.trim()) {
-    const error = new Error("El título de la publicación es obligatorio");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (title.trim().length > 150) {
-    const error = new Error("El título no puede superar los 150 caracteres");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (!content || typeof content !== "string" || !content.trim()) {
-    const error = new Error("El contenido de la publicación es obligatorio");
-    error.statusCode = 400;
-    throw error;
-  }
-
-  if (typeof isAnonymous !== "undefined" && typeof isAnonymous !== "boolean") {
-    const error = new Error("El campo isAnonymous debe ser verdadero o falso");
-    error.statusCode = 400;
-    throw error;
-  }
-}
-
 function mapPostToResponse(post) {
   const shouldHideAuthor = post.isAnonymous;
 
@@ -34,8 +8,10 @@ function mapPostToResponse(post) {
     title: post.title,
     content: post.content,
     isAnonymous: post.isAnonymous,
+    status: post.status,
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
+    attachments: post.attachments,
     author: shouldHideAuthor
       ? {
           id: null,
@@ -55,8 +31,6 @@ function mapPostToResponse(post) {
 }
 
 async function createPublication({ title, content, isAnonymous, authorId }) {
-  validateCreatePublicationInput({ title, content, isAnonymous });
-
   const post = await prisma.post.create({
     data: {
       title: title.trim(),
@@ -78,6 +52,9 @@ async function createPublication({ title, content, isAnonymous, authorId }) {
 
 async function getPublicationFeed() {
   const posts = await prisma.post.findMany({
+    where: {
+      status: "PUBLISHED",
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -87,13 +64,94 @@ async function getPublicationFeed() {
           role: true,
         },
       },
+      attachments: true,
     },
   });
 
   return posts.map(mapPostToResponse);
 }
 
+async function updatePublication(id, userId, data) {
+  const existing = await prisma.post.findUnique({
+    where: { id },
+  });
+
+  if (!existing) {
+    const error = new Error("Publicación no encontrada");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (existing.authorId !== userId) {
+    const error = new Error("No tienes permiso para modificar esta publicación");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (existing.deletedAt) {
+    const error = new Error("La publicación ha sido eliminada");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const updateData = {};
+  if (data.title !== undefined) updateData.title = data.title.trim();
+  if (data.content !== undefined) updateData.content = data.content.trim();
+  if (data.isAnonymous !== undefined) updateData.isAnonymous = data.isAnonymous;
+  if (data.status !== undefined) updateData.status = data.status;
+
+  const post = await prisma.post.update({
+    where: { id },
+    data: updateData,
+    include: {
+      author: {
+        include: {
+          role: true,
+        },
+      },
+      attachments: true,
+    },
+  });
+
+  return mapPostToResponse(post);
+}
+
+async function deletePublication(id, userId) {
+  const existing = await prisma.post.findUnique({
+    where: { id },
+  });
+
+  if (!existing) {
+    const error = new Error("Publicación no encontrada");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (existing.authorId !== userId) {
+    const error = new Error("No tienes permiso para eliminar esta publicación");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (existing.deletedAt) {
+    const error = new Error("La publicación ya ha sido eliminada");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const post = await prisma.post.update({
+    where: { id },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  return { id: post.id, deletedAt: post.deletedAt };
+}
+
 module.exports = {
   createPublication,
   getPublicationFeed,
+  updatePublication,
+  deletePublication,
 };

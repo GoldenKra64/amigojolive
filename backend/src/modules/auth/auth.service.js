@@ -97,31 +97,16 @@ async function login(data) {
     throw error;
   }
 
-  if (!user.passwordHash) {
-
-    const error = new Error(
-      "Este usuario usa login OAuth"
-    );
-
-    error.statusCode = 401;
-
-    throw error;
-  }
-
   const passwordIsValid =
     await bcrypt.compare(password, user.passwordHash);
 
   if (!passwordIsValid) {
-
     const error = new Error("Credenciales incorrectas");
-
     error.statusCode = 401;
-
     throw error;
   }
 
   if (user.status !== "ACTIVO") {
-
     const error = new Error(
       "Usuario inactivo, pendiente o bloqueado"
     );

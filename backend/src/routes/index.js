@@ -1,4 +1,5 @@
 const express = require("express");
+const { ApiResponse } = require("../config/api.response");
 
 const authRoutes = require("../modules/auth/auth.routes");
 const registrationRequestRoutes = require("../modules/registrationRequests/registrationRequest.routes");
@@ -11,11 +12,8 @@ const categoryRoutes = require("../modules/category/category.routes");
 
 const router = express.Router();
 
-router.get("/health", (req, res) => {
-  res.json({
-    status: "ok",
-    message: "Backend activo",
-  });
+router.get("/", (req, res) => {
+  res.json(new ApiResponse(true, 200, "Backend activo"));
 });
 
 router.use("/auth", authRoutes);

@@ -1,4 +1,5 @@
 const publicationService = require("./publication.service");
+const { ApiResponse } = require("../../config/api.response");
 
 async function createPublication(req, res, next) {
   try {
@@ -6,13 +7,10 @@ async function createPublication(req, res, next) {
       title: req.body.title,
       content: req.body.content,
       isAnonymous: req.body.isAnonymous,
-      authorId: req.user.id,
+      authorId: req.user.id
     });
 
-    return res.status(201).json({
-      message: "Publicación creada correctamente",
-      data: publication,
-    });
+    return res.status(201).json(new ApiResponse(true, 201, "Publicación creada correctamente", publication));
   } catch (error) {
     next(error);
   }
@@ -22,10 +20,34 @@ async function getPublicationFeed(req, res, next) {
   try {
     const publications = await publicationService.getPublicationFeed();
 
-    return res.status(200).json({
-      message: "Feed de publicaciones obtenido correctamente",
-      data: publications,
-    });
+    return res.status(200).json(new ApiResponse(true, 200, "Publicaciones obtenidas correctamente", publications));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function updatePublication(req, res, next) {
+  try {
+    const publication = await publicationService.updatePublication(
+      Number(req.params.id),
+      req.user.id,
+      req.body
+    );
+
+    return res.status(200).json(new ApiResponse(true, 200, "Publicación actualizada correctamente", publication));
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function deletePublication(req, res, next) {
+  try {
+    const result = await publicationService.deletePublication(
+      Number(req.params.id),
+      req.user.id
+    );
+
+    return res.status(200).json(new ApiResponse(true, 200, "Publicación eliminada correctamente", result));
   } catch (error) {
     next(error);
   }
@@ -34,4 +56,6 @@ async function getPublicationFeed(req, res, next) {
 module.exports = {
   createPublication,
   getPublicationFeed,
+  updatePublication,
+  deletePublication,
 };

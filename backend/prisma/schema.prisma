@@ -81,21 +81,48 @@ model TeacherProfile {
 model Post {
   id          Int      @id @default(autoincrement())
   title       String
-  content     String   @db.Text 
-  isAnonymous Boolean  @default(false) // Para aplicar anonimato en los post si el usuario lo desea
+  content     String   @db.Text
+  isAnonymous Boolean  @default(false)
+  status      PostStatus @default(PUBLISHED)
+  deletedAt   DateTime?
 
-  // Relación 1:N con Usuario
   authorId    Int
-  author      User     @relation(fields: [authorId], references: [id])
-
-  // Relaciones
+  author      User @relation(fields: [authorId], references: [id])
   comments    Comment[]
-  tags        Tag[]    // Relación Muchos a Muchos para etiquetar los post
+  tags        Tag[]
 
+  attachments PostAttachment[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("publicaciones")
+}
+
+model PostAttachment {
+  id          Int @id @default(autoincrement())
+  filename    String
+  originalName String
+  mimeType    String
+  path        String
+  size        Int
+  type        AttachmentType
+  postId      Int
+  post        Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+
+  @@map("adjuntos_publicacion")
+}
+
+enum AttachmentType {
+  IMAGE
+  DOCUMENT
+}
+
+enum PostStatus {
+  PUBLISHED
+  ARCHIVED
+  HIDDEN
 }
 
 model Comment {
