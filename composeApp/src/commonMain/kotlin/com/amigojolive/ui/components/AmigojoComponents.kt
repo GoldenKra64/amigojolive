@@ -149,13 +149,23 @@ fun PublicationList(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(16.dp),
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        items(publications, key = { it.id }) { pub ->
-            PublicationCard(pub, onClick = { onPublicationClick(pub.id) })
+    if (publications.isEmpty()) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = "Aún no hay publicaciones",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    } else {
+        LazyColumn(
+            modifier = modifier.fillMaxSize(),
+            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(publications, key = { it.id }) { pub ->
+                PublicationCard(pub, onClick = { onPublicationClick(pub.id) })
+            }
         }
     }
 }

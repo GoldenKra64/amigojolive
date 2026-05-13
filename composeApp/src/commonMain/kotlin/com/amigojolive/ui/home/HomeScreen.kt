@@ -1,14 +1,11 @@
 package com.amigojolive.ui.home
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.amigojolive.domain.model.UserSummary
@@ -19,10 +16,9 @@ import com.amigojolive.ui.publications.PublicationsViewModel
 
 /**
  * Pantalla de inicio del Panel del Docente.
- * Muestra métricas derivadas (publicaciones propias, distribución por etiquetas)
- * más accesos directos a las secciones principales.
- * No incluye accesos a /admin/* — la barra de docente está aislada del flujo admin.
+ * Ahora muestra directamente el feed de publicaciones reemplazando el dashboard antiguo.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeacherHomeContent(
     publicationsViewModel: PublicationsViewModel,
@@ -32,42 +28,12 @@ fun TeacherHomeContent(
 ) {
     val navigator = LocalNavigator.currentOrThrow
     val state     by publicationsViewModel.state.collectAsState()
-
-    if (state.loading) { LoadingOverlay(); return }
-
-    TeacherScaffold(
-        currentUser = currentUser,
-        onLogout = onLogout,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToCreatePost,
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Añadir")
-            }
-        }
-    ) {
-        PublicationList(
-            publications = state.publications,
-            onPublicationClick = { navigator.push(PublicationDetailScreen(it)) }
-        )
-    }
-}
-
-
-// ── Scaffold del docente con Bottom Navigation Bar ────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TeacherScaffold(
-    currentUser: UserSummary,
-    onLogout: () -> Unit,
-    floatingActionButton: @Composable () -> Unit = {},
-    content: @Composable () -> Unit,
-) {
-    val navigator   = LocalNavigator.currentOrThrow
     var menuExpanded by remember { mutableStateOf(false) }
+
+    if (state.loading) {
+        LoadingOverlay()
+        return
+    }
 
     Scaffold(
         topBar = {
@@ -92,12 +58,20 @@ fun TeacherScaffold(
                 },
             )
         },
-        floatingActionButton = floatingActionButton,
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToCreatePost,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Añadir publicación")
+            }
+        },
         bottomBar = {
             NavigationBar {
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { navigator.push(TeacherHomeScreen) },
+                    selected = true,
+                    onClick = { /* Ya estamos aquí */ },
                     icon = { Icon(Icons.Default.Home, null) },
                     label = { Text("Inicio") },
                 )
@@ -122,7 +96,11 @@ fun TeacherScaffold(
             }
         },
         content = { padding ->
-            Box(Modifier.padding(padding)) { content() }
-        },
+            PublicationList(
+                publications = state.publications,
+                onPublicationClick = { navigator.push(PublicationDetailScreen(it)) },
+                modifier = Modifier.padding(padding)
+            )
+        }
     )
 }

@@ -7,7 +7,7 @@ import com.amigojolive.domain.model.PublicationRequest
 
 class PublicationRepository(private val apiService: ApiService) {
 
-    suspend fun getAll(): ApiResult<List<Publication>> = apiService.getPublications()
+    suspend fun getPublications(): ApiResult<List<Publication>> = apiService.getPublications()
 
     suspend fun getById(id: Int): ApiResult<Publication> = apiService.getPublication(id)
 
@@ -21,7 +21,7 @@ class PublicationRepository(private val apiService: ApiService) {
 
     /** Filtra publicaciones propias en cliente; no hay endpoint específico en backend. */
     suspend fun getMyPublications(myUserId: Int): ApiResult<List<Publication>> {
-        return when (val result = getAll()) {
+        return when (val result = getPublications()) {
             is ApiResult.Success -> ApiResult.Success(
                 result.data.filter { it.author?.id == myUserId }
             )

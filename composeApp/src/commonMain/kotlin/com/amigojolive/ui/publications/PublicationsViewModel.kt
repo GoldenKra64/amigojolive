@@ -35,7 +35,7 @@ class PublicationsViewModel(
     fun loadFeed() {
         screenModelScope.launch {
             _state.update { it.copy(loading = true, error = null) }
-            when (val r = pubRepo.getAll()) {
+            when (val r = pubRepo.getPublications()) {
                 is ApiResult.Success -> _state.update { it.copy(loading = false, publications = r.data) }
                 is ApiResult.Error   -> _state.update { it.copy(loading = false, error = r.message) }
             }
