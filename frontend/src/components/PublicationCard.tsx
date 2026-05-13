@@ -154,48 +154,24 @@ export default function PublicationCard({ pub, onDelete }: PublicationCardProps)
                 </svg>
                 Archivos adjuntos:
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
                 {pub.attachments.map((file) => {
-                  const isImage = file.fileType?.startsWith('image/') || file.mimeType?.startsWith('image/');
                   const fileUrl = file.url || `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/uploads/${file.filename}`;
                   
                   return (
-                    <div
+                    <a
                       key={file.id}
-                      className="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:shadow-md transition-all"
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                     >
-                      {isImage ? (
-                        <div className="aspect-video w-full overflow-hidden bg-slate-200">
-                          <img
-                            src={fileUrl}
-                            alt={file.originalName || 'Imagen'}
-                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-12 items-center justify-center bg-slate-200 text-slate-400">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                      )}
-                      <div className="p-3">
-                        <p className="text-xs font-medium text-slate-900 truncate">
-                          {file.originalName || file.filename || 'Archivo'}
-                        </p>
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          {file.size ? `${(file.size / 1024).toFixed(1)} KB` : 'Tamaño desconocido'}
-                        </p>
-                        <a
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center text-[10px] font-semibold text-brand-600 hover:text-brand-700"
-                        >
-                          Descargar / Abrir →
-                        </a>
-                      </div>
-                    </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      {file.originalName || file.filename || 'Archivo'}
+                    </a>
                   );
                 })}
               </div>
