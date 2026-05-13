@@ -2,7 +2,6 @@ import { apiClient } from './client';
 import type {
   ApiResponse,
   Publication,
-  CreatePublicationPayload,
 } from '../types';
 
 export async function getPublications(): Promise<Publication[]> {
@@ -11,11 +10,20 @@ export async function getPublications(): Promise<Publication[]> {
 }
 
 export async function createPublication(
-  payload: CreatePublicationPayload
+  payload: FormData
 ): Promise<Publication> {
   const response = await apiClient.post<ApiResponse<Publication>>(
     '/publications',
-    payload
+    payload,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
   );
   return response.data.data;
+}
+
+export async function deletePublication(id: number): Promise<void> {
+  await apiClient.delete(`/publications/${id}`);
 }

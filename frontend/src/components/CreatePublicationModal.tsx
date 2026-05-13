@@ -18,9 +18,17 @@ export default function CreatePublicationModal({
 }: CreatePublicationModalProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [tags, setTags] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const { success, error } = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,15 +39,26 @@ export default function CreatePublicationModal({
 
     setLoading(true);
     try {
-      await createPublication({
-        title: title.trim(),
-        content: content.trim(),
-        isAnonymous,
-        tags: [],
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      formData.append('content', content.trim());
+      formData.append('isAnonymous', String(isAnonymous));
+      
+      // Tags (splitting by comma and trimming)
+      const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t !== '');
+      tagsArray.forEach(tag => formData.append('tags', tag));
+
+      // Files
+      files.forEach(file => {
+        formData.append('files', file);
       });
+
+      await createPublication(formData);
       success('Publicación creada correctamente.');
       setTitle('');
       setContent('');
+      setTags('');
+      setFiles([]);
       setIsAnonymous(false);
       onSuccess();
       onClose();
@@ -85,7 +104,31 @@ export default function CreatePublicationModal({
           required
           disabled={loading}
         />
-        <label className="flex items-center gap-2 cursor-pointer">
+        <Field
+          label="Etiquetas"
+          placeholder="Ej: tecnología, educación, campus (separadas por comas)"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          disabled={loading}
+        />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Archivos adjuntos (Imágenes, PDFs)
+          </label>
+          <input
+            type="file"
+            multiple
+            onChange={handleFileChange}
+            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 transition-colors"
+            disabled={loading}
+          />
+          {files.length > 0 && (
+            <div className="mt-2 text-xs text-slate-500">
+              {files.length} archivo(s) seleccionado(s)
+            </div>
+          )}
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer mt-2">
           <input
             type="checkbox"
             checked={isAnonymous}

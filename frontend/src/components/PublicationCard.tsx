@@ -1,12 +1,33 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { deletePublication } from '../api/publication.service';
+import { useToast } from './Toast';
 import type { Publication } from '../types';
 
 interface PublicationCardProps {
   pub: Publication;
+  onDelete?: () => void;
 }
 
-export default function PublicationCard({ pub }: PublicationCardProps) {
+export default function PublicationCard({ pub, onDelete }: PublicationCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { user } = useAuth();
+  const { success, error } = useToast();
+  const isAdmin = user?.role === 'admin';
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('¿Estás seguro de que deseas borrar esta publicación?')) return;
+
+    try {
+      await deletePublication(pub.id);
+      success('Publicación eliminada correctamente.');
+      onDelete?.();
+    } catch (err) {
+      error('Error al eliminar la publicación.');
+      console.error(err);
+    }
+  };
 
   return (
     <div
@@ -45,17 +66,76 @@ export default function PublicationCard({ pub }: PublicationCardProps) {
           )}
         </span>
       </div>
-      <p className="text-xs text-slate-500 mb-2">
-        Por {pub.author.firstName} {pub.author.lastName} el{' '}
+      <div className="flex flex-wrap gap-2 mt-2">
+        {pub.tags && pub.tags.map((tag: any) => (
+          <span
+            key={tag.id || tag}
+            className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800"
+          >
+            {tag.name || tag}
+          </span>
+        ))}
+      </div>
+
+      <p className="text-xs text-slate-500 mt-2">
         {new Date(pub.createdAt).toLocaleDateString()}
       </p>
 
       {isExpanded && (
-        <div
-          className="mt-4 pt-4 border-t border-slate-100 text-slate-700"
-          dangerouslySetInnerHTML={{ __html: pub.content }}
-          onClick={(e) => e.stopPropagation()}
-        />
+        <div className="mt-4 pt-4 border-t border-slate-100" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-slate-600">
+              Autor: {pub.author.firstName} {pub.author.lastName}
+              {pub.isAnonymous && <span className="ml-2 text-slate-400 italic">(Anónimo)</span>}
+            </p>
+            {isAdmin && (
+              <button
+                onClick={handleDelete}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-4 w-4"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.75 1A2.75 2.75 0 006 3.75V4H5a2 2 0 00-2 2v.092c0 .546.401.992.945 1.041l.37 3.518a4.25 4.25 0 004.225 3.849h3.42a4.25 4.25 0 004.225-3.849l.37-3.518A1.05 1.05 0 0017 6.092V6a2 2 0 00-2-2h-1V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4.5h2.5V4h-2.5v.5zM7.5 4h5v-.25A1.25 1.25 0 0011.25 2.5h-2.5A1.25 1.25 0 007.5 3.75V4zM5 5.5h10V6H5v-.5z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Borrar
+              </button>
+            )}
+          </div>
+          <div
+            className="text-slate-700 prose prose-slate max-w-none"
+            dangerouslySetInnerHTML={{ __html: pub.content }}
+          />
+          
+          {(pub as any).files && (pub as any).files.length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-sm font-semibold text-slate-900 mb-2">Adjuntos:</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(pub as any).files.map((file: any, index: number) => (
+                  <a
+                    key={index}
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    Archivo {index + 1}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

@@ -31,12 +31,12 @@ export default function FeedPage() {
     if (!title || !content) return;
 
     try {
-      await createPublication({
-        title,
-        content,
-        isAnonymous: false,
-        tags: [],
-      });
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('content', content);
+      formData.append('isAnonymous', 'false');
+      
+      await createPublication(formData);
       setTitle('');
       setContent('');
       await fetchPublications();
@@ -89,7 +89,7 @@ export default function FeedPage() {
           <p>No hay publicaciones todavía.</p>
         ) : (
           publications.map((pub) => (
-            <PublicationCard key={pub.id} pub={pub} />
+            <PublicationCard key={pub.id} pub={pub} onDelete={fetchPublications} />
           ))
         )}
       </div>
