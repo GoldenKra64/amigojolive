@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { RoleBadge, UserStatusBadge } from '../components/Badge';
 import Button from '../components/Button';
 import CreatePublicationModal from '../components/CreatePublicationModal';
+import PublicationCard from '../components/PublicationCard';
 import { getPublications } from '../api/publication.service';
 import type { Publication } from '../types';
 
@@ -136,14 +137,11 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500 italic">No hay publicaciones recientes.</p>
             ) : (
               recentPublications.map((pub) => (
-                <div key={pub.id} className="rounded-lg border border-slate-100 bg-slate-50 p-3">
-                  <h3 className="text-sm font-medium text-slate-900 line-clamp-1">{pub.title}</h3>
-                  <p className="mt-1 text-xs text-slate-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: pub.content }} />
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>{pub.author.firstName} {pub.author.lastName}</span>
-                    <span>{new Date(pub.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
+                <PublicationCard
+                  key={pub.id}
+                  pub={pub}
+                  onDelete={fetchRecentPublications}
+                />
               ))
             )}
           </div>
