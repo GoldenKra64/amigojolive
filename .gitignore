@@ -5,3 +5,10 @@ backend/.env
 
 public
 .vs
+# Excluir carpetas de compilación y configuración local de Kotlin/Android
+composeApp/.gradle/
+composeApp/.idea/
+composeApp/build/
+composeApp/.kotlin/
+composeApp/kotlin-js-store/
+composeApp/local.properties

@@ -25,7 +25,7 @@ data class AuthData(
 data class UserSummary(
     val id: Int,
     val email: String,
-    val role: String,          // "docente" | "admin" | "moderador"
+    val role: String? = null,          // "docente" | "admin" | "moderador"
     val isActive: Boolean,
     val profile: ProfileSummary? = null,
 )
@@ -37,4 +37,11 @@ data class ProfileSummary(
     val area: String?,
     val description: String?,
     val photoUrl: String?,
+)
+
+@Serializable
+data class ApiResponse<T>(
+    val status: String? = null,
+    val data: T? = null,
+    val message: String? = null
 )

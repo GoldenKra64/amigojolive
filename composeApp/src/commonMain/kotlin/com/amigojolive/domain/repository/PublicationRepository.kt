@@ -11,7 +11,7 @@ class PublicationRepository(private val apiService: ApiService) {
 
     suspend fun getById(id: Int): ApiResult<Publication> = apiService.getPublication(id)
 
-    suspend fun create(request: PublicationRequest): ApiResult<Publication> =
+    suspend fun createPublication(request: PublicationRequest): ApiResult<Publication> =
         apiService.createPublication(request)
 
     suspend fun update(id: Int, request: PublicationRequest): ApiResult<Publication> =

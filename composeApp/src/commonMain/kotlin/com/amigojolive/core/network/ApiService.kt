@@ -9,7 +9,7 @@ import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.http.*
 
 /** URL base de la API. Debe apuntar al backend en cada entorno. */
-const val BASE_URL = "http://localhost:3000/api/v1"
+const val BASE_URL = "https://amigojolive-production.up.railway.app/api/v1"
 
 /** Servicio de red: envuelve llamadas Ktor y desenvuelve ApiResponse. */
 class ApiService(private val client: HttpClient) {

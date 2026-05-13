@@ -13,7 +13,10 @@ import com.amigojolive.core.session.TokenStorage
  */
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    CanvasBasedWindow(title = "AmigojoLive") {
+    CanvasBasedWindow(
+        title = "AmigojoLive",
+        canvasElementId = "ComposeTarget"
+    ) {
         App(TokenStorage())
     }
 }

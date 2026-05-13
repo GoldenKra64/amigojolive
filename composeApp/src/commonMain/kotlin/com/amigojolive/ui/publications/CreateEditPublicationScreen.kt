@@ -169,7 +169,7 @@ fun CreateEditPublicationContent(
                             tagIds = selectedTags.toList(),
                         )
                         if (isEdit) viewModel.update(publicationId!!, request)
-                        else        viewModel.create(request)
+                        else        viewModel.publishPost(request)
                     },
                 )
             }

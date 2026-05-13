@@ -52,10 +52,10 @@ class PublicationsViewModel(
         }
     }
 
-    fun create(request: PublicationRequest) {
+    fun publishPost(request: PublicationRequest) {
         screenModelScope.launch {
             _state.update { it.copy(loading = true) }
-            when (val r = pubRepo.create(request)) {
+            when (val r = pubRepo.createPublication(request)) {
                 is ApiResult.Success -> {
                     _state.update { it.copy(loading = false, actionSuccess = "Publicación creada") }
                     loadFeed()

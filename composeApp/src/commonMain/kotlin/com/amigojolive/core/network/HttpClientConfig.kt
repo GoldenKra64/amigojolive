@@ -17,7 +17,8 @@ fun HttpClientConfig<*>.applyCommonConfig(tokenStorage: TokenStorage) {
         json(Json {
             ignoreUnknownKeys = true
             isLenient = true
-            encodeDefaults = false
+            encodeDefaults = true
+            explicitNulls = false
         })
     }
 
