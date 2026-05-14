@@ -52,4 +52,11 @@ router.delete(
   publicationController.deletePublication
 );
 
+router.get(
+  "/:id/attachments",
+  authMiddleware,
+  requireRole("docente", "admin"),
+  publicationController.getPublicationAttachments
+);
+
 module.exports = router;

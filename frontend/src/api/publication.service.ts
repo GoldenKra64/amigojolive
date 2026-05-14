@@ -5,8 +5,12 @@ import type {
   Comment,
 } from '../types';
 
-export async function getPublications(): Promise<Publication[]> {
-  const response = await apiClient.get<ApiResponse<Publication[]>>('/publications');
+export async function getPublications(tagIds?: number[]): Promise<Publication[]> {
+  const params: Record<string, string> = {};
+  if (tagIds && tagIds.length > 0) {
+    params.tagIds = tagIds.join(',');
+  }
+  const response = await apiClient.get<ApiResponse<Publication[]>>('/publications', { params });
   return response.data.data;
 }
 

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Modal from './Modal';
 import Field from './Field';
 import Button from './Button';
 import { createPublication } from '../api/publication.service';
+import { getCategories, type Category } from '../api/category.service';
 import { useToast } from './Toast';
 
 interface CreatePublicationModalProps {
@@ -18,37 +19,62 @@ export default function CreatePublicationModal({
 }: CreatePublicationModalProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
   const { success, error } = useToast();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const selectedFiles = Array.from(e.target.files);
-      setFiles(selectedFiles);
-      
-      // Whitelist validation (for demonstration)
-      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
-      const invalidFiles = selectedFiles.filter(file => {
-        const ext = file.name.slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
-        return !allowedExtensions.includes(`.${ext}`);
-      });
+  useEffect(() => {
+    if (!open) return;
+    getCategories()
+      .then(setAvailableCategories)
+      .catch(() => {});
+  }, [open]);
 
-      if (invalidFiles.length > 0) {
-        setFileError(`Advertencia: Has seleccionado archivos que no son imágenes o PDFs (${invalidFiles.map(f => f.name).join(', ')}). Esto podría ser peligroso, pero permitiremos la subida para la demostración.`);
-      } else {
-        setFileError(null);
-      }
-    }
+  const toggleTag = (id: number) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const selected = Array.from(e.target.files);
+    setFiles(selected);
+
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf'];
+    const invalid = selected.filter((file) => {
+      const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+      return !allowedExtensions.includes(ext);
+    });
+
+    setFileError(
+      invalid.length > 0
+        ? `Tipo no permitido: ${invalid.map((f) => f.name).join(', ')}. Solo se aceptan JPG, PNG y PDF.`
+        : null
+    );
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setSelectedTagIds([]);
+    setFiles([]);
+    setFileError(null);
+    setIsAnonymous(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) {
       error('El título y el contenido son obligatorios.');
+      return;
+    }
+    if (fileError) {
+      error('Corrige los archivos antes de publicar.');
       return;
     }
 
@@ -58,25 +84,13 @@ export default function CreatePublicationModal({
       formData.append('title', title.trim());
       formData.append('content', content.trim());
       formData.append('isAnonymous', isAnonymous ? 'true' : 'false');
-      
-      // Tags
-      const tagsArray = tags.split(',').map(t => t.trim()).filter(t => t !== '');
-      tagsArray.forEach(tag => {
-        formData.append('tags', tag);
-      });
 
-      // Files
-      files.forEach(file => {
-        formData.append('files', file);
-      });
+      selectedTagIds.forEach((id) => formData.append('tags', String(id)));
+      files.forEach((file) => formData.append('files', file));
 
       await createPublication(formData);
       success('Publicación creada correctamente.');
-      setTitle('');
-      setContent('');
-      setTags('');
-      setFiles([]);
-      setIsAnonymous(false);
+      resetForm();
       onSuccess();
       onClose();
     } catch (err) {
@@ -121,41 +135,69 @@ export default function CreatePublicationModal({
           required
           disabled={loading}
         />
-        <Field
-          label="Etiquetas"
-          placeholder="Ej: tecnología, educación, campus (separadas por comas)"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          disabled={loading}
-        />
+
+        {availableCategories.length > 0 && (
+          <div>
+            <p className="block text-sm font-medium text-slate-700 mb-2">
+              Categorías
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {availableCategories.map((cat) => {
+                const selected = selectedTagIds.includes(cat.id);
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => toggleTag(cat.id)}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                      selected
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedTagIds.length > 0 && (
+              <p className="mt-1 text-xs text-slate-400">
+                {selectedTagIds.length} categoría(s) seleccionada(s)
+              </p>
+            )}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Archivos adjuntos (Imágenes, PDFs)
+            Archivos adjuntos (Imágenes JPG/PNG hasta 2 MB, PDF hasta 10 MB)
           </label>
           <input
             type="file"
             multiple
             onChange={handleFileChange}
-            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 transition-colors"
+            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors"
             disabled={loading}
           />
           {fileError && (
-            <div className="mt-2 text-xs font-medium text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-              ⚠️ {fileError}
-            </div>
+            <p className="mt-2 text-xs font-medium text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+              {fileError}
+            </p>
           )}
           {files.length > 0 && !fileError && (
-            <div className="mt-2 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-500">
               {files.length} archivo(s) seleccionado(s)
-            </div>
+            </p>
           )}
         </div>
+
         <label className="flex items-center gap-2 cursor-pointer mt-2">
           <input
             type="checkbox"
             checked={isAnonymous}
             onChange={(e) => setIsAnonymous(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             disabled={loading}
           />
           <span className="text-sm text-slate-700">Publicar como anónimo</span>

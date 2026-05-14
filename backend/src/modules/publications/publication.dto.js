@@ -66,7 +66,22 @@ const updatePublicationDto = z.object({
   tags: tagsSchema.optional(),
 });
 
+const listPublicationsDto = z.object({
+  tagIds: z
+    .preprocess(
+      (v) => {
+        if (v === undefined || v === null || v === "") return undefined;
+        if (typeof v === "string") return v.split(",").map((s) => s.trim()).filter(Boolean);
+        if (Array.isArray(v)) return v;
+        return [v];
+      },
+      z.array(z.coerce.number().int().positive()).optional()
+    )
+    .optional(),
+});
+
 module.exports = {
   createPublicationDto,
   updatePublicationDto,
+  listPublicationsDto,
 };

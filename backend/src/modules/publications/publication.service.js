@@ -1,4 +1,8 @@
+const fs = require("fs");
+const path = require("path");
 const prisma = require("../../lib/prisma");
+
+const PUBLIC_DIR = path.resolve(__dirname, "../../../public");
 
 function mapPostToResponse(post) {
   const shouldHideAuthor = post.isAnonymous;
@@ -72,11 +76,14 @@ async function createPublication({ title, content, isAnonymous, authorId, files 
   return mapPostToResponse(post);
 }
 
-async function getPublicationFeed() {
+async function getPublicationFeed({ tagIds } = {}) {
   const posts = await prisma.post.findMany({
     where: {
       status: "PUBLISHED",
       deletedAt: null,
+      ...(tagIds && tagIds.length > 0 && {
+        tags: { some: { id: { in: tagIds } } },
+      }),
     },
     orderBy: {
       createdAt: "desc",
@@ -203,10 +210,35 @@ async function deletePublication(id, user) {
   return { id: post.id, deletedAt: post.deletedAt };
 }
 
+async function getPublicationAttachments(postId) {
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+
+  if (!post || post.deletedAt) {
+    const error = new Error("Publicación no encontrada");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const attachments = await prisma.postAttachment.findMany({
+    where: { postId },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return attachments.map((att) => {
+    const folder = att.type === "IMAGE" ? "images" : "documents";
+    const diskPath = path.join(PUBLIC_DIR, folder, att.filename);
+    return {
+      ...att,
+      existsOnDisk: fs.existsSync(diskPath),
+    };
+  });
+}
+
 module.exports = {
   createPublication,
   getPublicationFeed,
   getPublicationById,
   updatePublication,
   deletePublication,
+  getPublicationAttachments,
 };

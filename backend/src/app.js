@@ -7,9 +7,21 @@ const errorMiddleware = require("./middlewares/error.middleware");
 
 const app = express();
 
+const PUBLIC_DIR = path.resolve(__dirname, "../public");
+
 app.use(cors());
 app.use(express.json());
-app.use("/public", express.static(path.join(process.cwd(), "public")));
+app.use(
+  "/public",
+  express.static(PUBLIC_DIR, {
+    setHeaders(res, filePath) {
+      if (filePath.endsWith(".pdf")) {
+        res.setHeader("Content-Disposition", "attachment");
+      }
+      res.setHeader("Cache-Control", "public, max-age=86400");
+    },
+  })
+);
 
 app.use("/api/v1", routes);
 
