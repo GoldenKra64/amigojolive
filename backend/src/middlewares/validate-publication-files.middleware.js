@@ -1,5 +1,5 @@
 const { ApiResponse } = require("../config/api.response");
-const { fileTypeFromFile } = require("file-type");
+const FileType = require("file-type");
 const fs = require("fs");
 const prisma = require("../lib/prisma");
 
@@ -38,21 +38,21 @@ async function validatePublicationFiles(req, res, next) {
 
     // Validación de Magic Numbers
     for (const file of files) {
-      // fileTypeFromFile analiza los primeros bytes del archivo
-      const fileInfo = await fileTypeFromFile(file.path);
-      const detectedMime = fileInfo ? fileInfo.mime : "unknown";
+      // Analiza los primeros bytes del archivo
+      const fileTypeResult = await FileType.fromFile(file.path);
+      const mimeReal = fileTypeResult ? fileTypeResult.mime : "unknown";
       
       // text/plain y application/msword y application/vnd.ms-excel a veces no son detectados bien por file-type
       // Para simplificar, nos aseguramos que si es detectado, coincida parcialmente o sea aceptable.
       // Aquí comparamos si el detectado es totalmente diferente al reclamado o si se intentó subir un tipo prohibido
       // y se camufló. Lo principal es si detectamos un ejecutable o si el detectado no concuerda con el mimetype reclamado.
       
-      const isTextFile = file.mimetype === "text/plain" && detectedMime === "unknown"; // file-type no siempre detecta text/plain
-      const isOfficeDocument = (file.mimetype === "application/msword" || file.mimetype === "application/vnd.ms-excel") && detectedMime === "unknown"; // .doc o .xls antiguos
+      const isTextFile = file.mimetype === "text/plain" && mimeReal === "unknown"; // file-type no siempre detecta text/plain
+      const isOfficeDocument = (file.mimetype === "application/msword" || file.mimetype === "application/vnd.ms-excel") && mimeReal === "unknown"; // .doc o .xls antiguos
       
-      if (!isTextFile && !isOfficeDocument && fileInfo && !file.mimetype.includes(detectedMime) && detectedMime !== file.mimetype) {
+      if (!isTextFile && !isOfficeDocument && fileTypeResult && !file.mimetype.includes(mimeReal) && mimeReal !== file.mimetype) {
          // Validaciones específicas porque ms-office puede ser detectado como application/zip (los docx, xlsx)
-         const isDocxOrXlsx = file.mimetype.includes("openxmlformats") && detectedMime === "application/zip";
+         const isDocxOrXlsx = file.mimetype.includes("openxmlformats") && mimeReal === "application/zip";
          if (!isDocxOrXlsx) {
             // ¡Peligro de seguridad! El archivo no es lo que dice ser
             if (fs.existsSync(file.path)) {
@@ -66,7 +66,7 @@ async function validatePublicationFiles(req, res, next) {
                 userId,
                 fileName: file.originalname,
                 attemptedMime: file.mimetype,
-                detectedMime: detectedMime,
+                detectedMime: mimeReal,
                 status: "PENDING",
               },
             });
