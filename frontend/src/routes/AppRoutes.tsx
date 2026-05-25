@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import RoleRoute from './RoleRoute';
 import Layout from '../components/Layout';
+import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterRequestPage from '../pages/RegisterRequestPage';
 import DashboardPage from '../pages/DashboardPage';
@@ -18,13 +19,14 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicOnlyRoute />}>
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterRequestPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/feed" element={<FeedPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/chatbot" element={<ChatbotPage />} />

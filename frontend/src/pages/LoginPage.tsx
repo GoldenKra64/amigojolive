@@ -47,7 +47,7 @@ export default function LoginPage() {
       });
       toast.success('Sesión iniciada correctamente');
       const target =
-        (location.state as LocationState | null)?.from?.pathname ?? '/';
+        (location.state as LocationState | null)?.from?.pathname ?? '/dashboard';
       navigate(target, { replace: true });
     } catch (error) {
       toast.error(extractErrorMessage(error, 'No se pudo iniciar sesión'));
