@@ -1,7 +1,7 @@
 const { getResponse } = require("./chatbot.service");
 const { ApiResponse } = require("../../config/api.response");
 
-async function getResponseController(req, res) {
+async function getResponseController(req, res, next) {
     const { prompt } = req.body;
 
     if (!prompt.trim() || prompt.trim().length === 0) {

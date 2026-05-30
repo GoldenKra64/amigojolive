@@ -93,7 +93,73 @@ export interface UpdateProfilePayload {
   photoUrl?: string;
 }
 
+export interface PublicationAuthor {
+  id: number | null;
+  firstName: string;
+  lastName: string;
+  institutionalEmail: string | null;
+  role: string | null;
+}
+
+export interface Attachment {
+  id: number;
+  url: string;
+  fileType?: string;
+  filename?: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
+  type?: "IMAGE" | "DOCUMENT" | string;
+  isSuspicious?: boolean;
+}
+
+export interface Publication {
+  id: number;
+  title: string;
+  content: string;
+  isAnonymous: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  author: PublicationAuthor;
+  tags: any[];
+  attachments?: Attachment[];
+  comments?: Comment[];
+}
+
+export interface Comment {
+  id: number;
+  content: string;
+  createdAt: string;
+  author: PublicationAuthor;
+}
+
+export interface CreatePublicationPayload {
+  title: string;
+  content: string;
+  isAnonymous: boolean;
+  tags: number[];
+}
+
 export interface ApiResponse<T> {
   message: string;
   data: T;
+}
+
+export interface SecurityIncident {
+  id: number;
+  userId: number;
+  fileName: string;
+  attemptedMime: string;
+  detectedMime: string;
+  status: "PENDING" | "FALSE_ALARM" | "MALWARE_DELETED" | string;
+  fileMetadata?: any;
+  createdAt: string;
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    institutionalEmail: string;
+  };
+  postId?: number;
 }

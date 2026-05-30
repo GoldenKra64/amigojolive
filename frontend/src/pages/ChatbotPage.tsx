@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { getChatbotSocket, disconnectChatbot, type ChatMessage } from '../api/socket';
+import { getChatbotSocket, disconnectChatbot, sendChatStream, type ChatMessage } from '../api/socket';
 
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -48,13 +48,9 @@ export default function ChatbotPage() {
     }));
 
     try {
-      const socket = getChatbotSocket();
       let reply = '';
-
-      socket.emit('chat:stream', { messages: history });
-
-      socket.on('chat:token', (data: { token: string }) => {
-        reply += data.token;
+      await sendChatStream(history, (token) => {
+        reply += token;
         setMessages((prev) => {
           const updated = [...prev];
           if (updated[updated.length - 1]?.role === 'assistant') {
@@ -65,24 +61,11 @@ export default function ChatbotPage() {
           return updated;
         });
       });
-
-      socket.once('chat:done', () => {
-        socket.off('chat:token');
-        setStreaming(false);
-      });
-
-      socket.once('chat:error', (data: { message: string }) => {
-        socket.off('chat:token');
-        setMessages((prev) => [
-          ...prev,
-          { role: 'assistant', content: `Error: ${data.message}` },
-        ]);
-        setStreaming(false);
-      });
-    } catch {
+      setStreaming(false);
+    } catch (err) {
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'Error al conectar con el chatbot' },
+        { role: 'assistant', content: err instanceof Error ? `Error: ${err.message}` : 'Error al conectar con el chatbot' },
       ]);
       setStreaming(false);
     }

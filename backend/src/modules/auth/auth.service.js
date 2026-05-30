@@ -116,6 +116,12 @@ async function login(data) {
     throw error;
   }
 
+  if (!user.role || !user.role.active) {
+    const error = new Error("Rol inválido o inactivo");
+    error.statusCode = 403;
+    throw error;
+  }
+
   await prisma.user.update({
     where: {
       id: user.id,
@@ -155,10 +161,38 @@ async function login(data) {
 
 async function getMe(userId) {
   const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    }
+    where: { id: userId },
+    include: {
+      role: true,
+      teacherProfile: true,
+    },
   });
+
+  if (!user) {
+    return null;
+  }
+
+  const profile = user.teacherProfile
+    ? {
+        id: user.teacherProfile.id,
+        userId: user.teacherProfile.userId,
+        area: user.teacherProfile.area,
+        description: user.teacherProfile.description,
+        photoUrl: user.teacherProfile.photoUrl,
+        createdAt: user.teacherProfile.createdAt,
+        updatedAt: user.teacherProfile.updatedAt,
+      }
+    : null;
+
+  return {
+    id: user.id,
+    institutionalEmail: user.institutionalEmail,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    status: user.status,
+    role: user.role.name,
+    profile,
+  };
 }
 module.exports = {
   createRegistrationRequest,

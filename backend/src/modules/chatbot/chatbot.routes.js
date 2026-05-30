@@ -4,6 +4,6 @@ const authMiddleware = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
 
-router.post("/", authMiddleware, chatbotController.getResponseController);
+router.post("/", chatbotController.getResponseController);
 
 module.exports = router;

@@ -2,9 +2,28 @@ import axios, { AxiosError, type AxiosInstance } from 'axios';
 
 export const TOKEN_STORAGE_KEY = 'amigojolive_token';
 
+const envUrlRaw = (
+  import.meta.env.VITE_API_URL as string | undefined
+)?.trim();
+
+const PRODUCTION_API_URL = 'https://amigojolive-production.up.railway.app/api/v1';
+
 const baseURL =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  'http://localhost:3000/api/v1';
+  envUrlRaw && envUrlRaw.length > 0
+    ? envUrlRaw
+    : import.meta.env.DEV
+      ? '/api/v1'
+      : PRODUCTION_API_URL;
+
+export function getPublicFilesBaseUrl(): string {
+  if (envUrlRaw && envUrlRaw.length > 0) {
+    return envUrlRaw.replace(/\/api\/v1\/?$/, '');
+  }
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  return PRODUCTION_API_URL.replace(/\/api\/v1\/?$/, '');
+}
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL,
@@ -21,6 +40,14 @@ apiClient.interceptors.request.use((config) => {
     path.includes('/auth/register-request');
 
   config.headers = config.headers ?? {};
+
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (typeof config.headers.delete === 'function') {
+      config.headers.delete('Content-Type');
+    } else {
+      delete (config.headers as Record<string, unknown>)['Content-Type'];
+    }
+  }
 
   if (isPublicAuth) {
     delete config.headers.Authorization;
@@ -63,7 +90,13 @@ export function extractErrorMessage(
       return 'No hay conexión con el API. Verifique VITE_API_URL y que el backend esté ejecutándose en el puerto 3000.';
     }
     const data = error.response?.data as { message?: string } | undefined;
-    if (data?.message) return data.message;
+    if (data?.message) {
+      const msg = data.message.trim();
+      if (msg.includes('Invalid `prisma.') && msg.includes('invocation')) {
+        return 'Error del servidor relacionado con la base de datos. Revise `backend/.env` y la conexion PostgreSQL configurada. Docker solo hace falta si quiere una base local.';
+      }
+      return msg;
+    }
     if (error.message) return error.message;
   }
   if (error instanceof Error && error.message) {

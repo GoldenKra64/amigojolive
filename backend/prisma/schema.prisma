@@ -55,6 +55,7 @@ model User {
   comments           Comment[]
 
   reviewedRegistrationRequests RegistrationRequest[] @relation("ReviewedRegistrationRequests")
+  securityIncidents  SecurityIncident[]
 
   lastLoginAt        DateTime?
   createdAt          DateTime   @default(now())
@@ -92,6 +93,7 @@ model Post {
   tags        Tag[]
 
   attachments PostAttachment[]
+  securityIncidents SecurityIncident[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -108,6 +110,7 @@ model PostAttachment {
   type        AttachmentType
   postId      Int
   post        Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  isSuspicious Boolean @default(false)
 
   createdAt   DateTime @default(now())
 
@@ -147,7 +150,6 @@ model Comment {
 model Tag {
   id          Int      @id @default(autoincrement())
   name        String   @unique // Las diferentes etiquetas, que todavia esta por definir
-  
   posts       Post[]   // Relación Muchos a Muchos para etiquetar los post
 
   @@map("etiquetas")
@@ -177,4 +179,21 @@ model RegistrationRequest {
   @@index([status])
 
   @@map("solicitudes_registro")
+}
+
+model SecurityIncident {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  fileName      String
+  attemptedMime String
+  detectedMime  String
+  status        String   @default("PENDING") // PENDING, RESOLVED
+  physicalPath  String?
+  postId        Int?
+  post          Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  fileMetadata  Json?
+  createdAt     DateTime @default(now())
+
+  @@map("incidentes_seguridad")
 }

@@ -71,22 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(
-    async (payload: LoginPayload) => {
-      const result = await loginRequest(payload);
-      localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
-      setToken(result.token);
-      setUser(result.user);
-      try {
-        const me = await fetchMe();
-        setProfile(me);
-      } catch {
-        setProfile(null);
-      }
-      return result.user;
-    },
-    []
-  );
+  const login = useCallback(async (payload: LoginPayload) => {
+    const result = await loginRequest(payload);
+    localStorage.setItem(TOKEN_STORAGE_KEY, result.token);
+    setToken(result.token);
+    setUser(result.user);
+    setProfile(null);
+    return result.user;
+  }, []);
 
   useEffect(() => {
     registerUnauthorizedHandler(() => {

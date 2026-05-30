@@ -12,23 +12,57 @@
   --color-brand-800: #173e8e;
   --color-brand-900: #163673;
 
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue",
-    Arial, sans-serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 
-html,
-body,
+@layer base {
+  html {
+    /* Estándar WCAG: 1rem = 16px base en todos los navegadores */
+    font-size: 16px; 
+    height: 100%;
+  }
+  
+  body {
+    /* Reemplazamos @apply por CSS nativo para evitar errores en V4 */
+    background-color: #f8fafc; /* Color: slate-50 */
+    color: #1e293b;            /* Color: slate-800 (Alto contraste) */
+    font-size: 1rem;           /* Tamaño: 16px */
+    line-height: 1.625;        /* Interlineado relajado para fácil lectura */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    height: 100%;
+    font-family: var(--font-sans);
+  }
+
+  h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: #0f172a; /* Color: slate-900 */
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.875rem;
+    font-weight: 600;
+    color: #1e293b; /* Color: slate-800 */
+    margin-bottom: 0.75rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    margin-bottom: 1rem;
+  }
+}
+
 #root {
   height: 100%;
-}
-
-body {
-  margin: 0;
-  background-color: #f5f7fb;
-  color: #0f172a;
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 button {

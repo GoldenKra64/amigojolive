@@ -3,23 +3,17 @@ require("dotenv/config");
 const { Pool } = require("pg");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
+const {
+  resolvePostgresConnectionString,
+  sslOptionForPg,
+} = require("./resolve-database-url");
 
-const connectionString =
-  process.env.DATABASE_APP_URL ||
-  process.env.DIRECT_URL ||
-  process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error(
-    "Defina DIRECT_URL o DATABASE_URL en backend/.env para conectar Prisma."
-  );
-}
+const connectionString = resolvePostgresConnectionString();
+const ssl = sslOptionForPg(connectionString);
 
 const pool = new Pool({
   connectionString,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ...(ssl !== undefined ? { ssl } : {}),
   connectionTimeoutMillis: 60_000,
   max: 10,
 });

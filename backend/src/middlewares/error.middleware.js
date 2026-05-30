@@ -1,8 +1,6 @@
 const { ApiResponse } = require("../config/api.response");
+const { publicMessageForDbError } = require("../lib/database-error-message");
 
-/**
- * Middleware para manejar errores generales || 500
- */
 function errorMiddleware(error, req, res, next) {
   console.error(error);
 
@@ -10,13 +8,9 @@ function errorMiddleware(error, req, res, next) {
 
   let message = error.message || "Error interno del servidor";
 
-  if (
-    error.code === "ETIMEDOUT" ||
-    error.code === "ECONNREFUSED" ||
-    /timeout|timed out/i.test(String(message))
-  ) {
-    message =
-      "No se pudo conectar a la base de datos";
+  const friendlyDb = publicMessageForDbError(error, message);
+  if (friendlyDb) {
+    message = friendlyDb;
   }
 
   const response = new ApiResponse(false, statusCode, message);

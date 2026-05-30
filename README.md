@@ -45,5 +45,15 @@ Caja Blanca: Verificación de la lógica interna del código y cumplimiento de p
 
 Caja Negra: Evaluación de las respuestas de los endpoints basándose estrictamente en las entradas del usuario.
 
-Pruebas de Carga: Simulación de múltiples usuarios concurrentes para asegurar la estabilidad del servidor en entornos de alta demanda escolar.
 
+## 6. Arranque local (monorepo)
+
+1. **PostgreSQL**: en la raíz del repositorio, `docker compose up -d postgres` (necesita Docker Desktop activo). Usuario/clave/base: `amigo` / `amigo_dev` / `amigojolive`; copiar la cadena de conexión a `backend/.env` desde `backend/.env.example`.
+2. **Migraciones y datos iniciales** (directorio `backend/`): `npx prisma generate`, `npm run prisma:deploy`, `npm run db:seed`.
+3. **API**: `npm run dev` en `backend/` (puerto 3000).
+4. **Web (Vite)**: `npm run dev` en `frontend/` (`VITE_API_URL=http://localhost:3000/api/v1`; puede omitirse la variable para usar el proxy configurado en Vite contra el puerto 3000).
+5. **Cliente Kotlin web** (opcional): en `composeApp/`, `./gradlew jsBrowserDevelopmentRun` (suele servir en el puerto 8080).
+
+Para comprobar si el backend alcanza la base de datos: `GET http://localhost:3000/api/v1/health/db` debe devolver JSON con mensaje positivo tras las migraciones.
+
+Si Postgres devuelve error de usuario/contraseña (`28P01`, autentificación fallida) pero la URL en `backend/.env` coincide con `docker-compose.yml`, es habitual que exista **un volumen antiguo** con otra clave; en ese caso ejecute desde la raíz `docker compose down -v`, luego `docker compose up -d postgres`, y vuelva a aplicar migraciones y seed.

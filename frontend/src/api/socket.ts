@@ -12,7 +12,7 @@ export type ChatMessage = {
 };
 
 export function getChatbotSocket(): Socket {
-  if (socket?.connected) return socket;
+  if (socket) return socket;
 
   const token = localStorage.getItem(TOKEN_STORAGE_KEY);
 
@@ -51,13 +51,26 @@ export function sendChatMessage(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const s = getChatbotSocket();
-    s.emit('chat:message', { messages });
-    s.once('chat:response', (data: { message: string }) => {
+
+    const onResponse = (data: { message: string }) => {
+      cleanup();
       resolve(data.message);
-    });
-    s.once('chat:error', (data: { message: string }) => {
+    };
+
+    const onError = (data: { message: string }) => {
+      cleanup();
       reject(new Error(data.message));
-    });
+    };
+
+    const cleanup = () => {
+      s.off('chat:response', onResponse);
+      s.off('chat:error', onError);
+    };
+
+    s.once('chat:response', onResponse);
+    s.once('chat:error', onError);
+
+    s.emit('chat:message', { messages });
   });
 }
 
@@ -69,20 +82,30 @@ export function sendChatStream(
     const s = getChatbotSocket();
     let fullContent = '';
 
-    s.on('chat:token', (data: { token: string }) => {
+    const onTokenHandler = (data: { token: string }) => {
       fullContent += data.token;
       onToken(data.token);
-    });
+    };
 
-    s.once('chat:done', () => {
-      s.off('chat:token');
+    const onDone = () => {
+      cleanup();
       resolve(fullContent);
-    });
+    };
 
-    s.once('chat:error', (data: { message: string }) => {
-      s.off('chat:token');
+    const onError = (data: { message: string }) => {
+      cleanup();
       reject(new Error(data.message));
-    });
+    };
+
+    const cleanup = () => {
+      s.off('chat:token', onTokenHandler);
+      s.off('chat:done', onDone);
+      s.off('chat:error', onError);
+    };
+
+    s.on('chat:token', onTokenHandler);
+    s.once('chat:done', onDone);
+    s.once('chat:error', onError);
 
     s.emit('chat:stream', { messages });
   });

@@ -1,18 +1,24 @@
 require("dotenv/config");
 
+const { Pool } = require("pg");
 const bcrypt = require("bcryptjs");
 const { PrismaClient } = require("@prisma/client");
 const { PrismaPg } = require("@prisma/adapter-pg");
+const {
+  resolvePostgresConnectionString,
+  sslOptionForPg,
+} = require("../src/lib/resolve-database-url");
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DIRECT_URL || process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+const connectionString = resolvePostgresConnectionString();
+const ssl = sslOptionForPg(connectionString);
+const pool = new Pool({
+  connectionString,
+  ...(ssl !== undefined ? { ssl } : {}),
+  connectionTimeoutMillis: 60_000,
+  max: 5,
 });
-
 const prisma = new PrismaClient({
-  adapter,
+  adapter: new PrismaPg(pool),
 });
 
 async function main() {
@@ -92,4 +98,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

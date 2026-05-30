@@ -1,4 +1,9 @@
+const fs = require("fs");
+const path = require("path");
 const prisma = require("../../lib/prisma");
+const { mapCommentToResponse } = require("../comments/comment.service");
+
+const PUBLIC_DIR = path.resolve(__dirname, "../../../public");
 
 function mapPostToResponse(post) {
   const shouldHideAuthor = post.isAnonymous;
@@ -12,6 +17,8 @@ function mapPostToResponse(post) {
     createdAt: post.createdAt,
     updatedAt: post.updatedAt,
     attachments: post.attachments,
+    comments: (post.comments ?? []).map(mapCommentToResponse),
+    tags: post.tags ?? [],
     author: shouldHideAuthor
       ? {
           id: null,
@@ -30,13 +37,33 @@ function mapPostToResponse(post) {
   };
 }
 
-async function createPublication({ title, content, isAnonymous, authorId }) {
+function mapFileToAttachment(file) {
+  return {
+    filename: file.filename,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    path: file.path,
+    size: file.size,
+    type: file.mimetype.startsWith("image/") ? "IMAGE" : "DOCUMENT",
+    isSuspicious: file.isSuspicious || false,
+  };
+}
+
+async function createPublication({ title, content, isAnonymous, authorId, files = [], tagIds }) {
   const post = await prisma.post.create({
     data: {
       title: title.trim(),
       content: content.trim(),
       isAnonymous: isAnonymous ?? false,
       authorId,
+      attachments: {
+        create: files.map(mapFileToAttachment),
+      },
+      ...(tagIds !== undefined && {
+        tags: {
+          connect: tagIds.map(id => ({ id })),
+        },
+      }),
     },
     include: {
       author: {
@@ -44,16 +71,51 @@ async function createPublication({ title, content, isAnonymous, authorId }) {
           role: true,
         },
       },
+      attachments: true,
+      comments: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          author: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      },
+      tags: true,
     },
   });
+
+  for (const file of files) {
+    if (file.isSuspicious) {
+      await prisma.securityIncident.create({
+        data: {
+          userId: authorId,
+          fileName: file.originalname,
+          attemptedMime: file.attemptedMime || file.mimetype,
+          detectedMime: file.detectedMime || "unknown",
+          status: "PENDING",
+          physicalPath: file.path,
+          postId: post.id,
+          fileMetadata: file.extractedMetadata || null
+        }
+      });
+    }
+  }
 
   return mapPostToResponse(post);
 }
 
-async function getPublicationFeed() {
+async function getPublicationFeed({ tagIds } = {}) {
   const posts = await prisma.post.findMany({
     where: {
       status: "PUBLISHED",
+      deletedAt: null,
+      ...(tagIds && tagIds.length > 0 && {
+        tags: { some: { id: { in: tagIds } } },
+      }),
     },
     orderBy: {
       createdAt: "desc",
@@ -65,10 +127,58 @@ async function getPublicationFeed() {
         },
       },
       attachments: true,
+      comments: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          author: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      },
+      tags: true,
     },
   });
 
   return posts.map(mapPostToResponse);
+}
+
+async function getPublicationById(id) {
+  const post = await prisma.post.findUnique({
+    where: { id },
+    include: {
+      author: {
+        include: {
+          role: true,
+        },
+      },
+      attachments: true,
+      comments: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          author: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      },
+      tags: true,
+    },
+  });
+
+  if (!post || post.deletedAt) {
+    const error = new Error("Publicación no encontrada");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return mapPostToResponse(post);
 }
 
 async function updatePublication(id, userId, data) {
@@ -99,6 +209,11 @@ async function updatePublication(id, userId, data) {
   if (data.content !== undefined) updateData.content = data.content.trim();
   if (data.isAnonymous !== undefined) updateData.isAnonymous = data.isAnonymous;
   if (data.status !== undefined) updateData.status = data.status;
+  if (data.tags !== undefined) {
+    updateData.tags = {
+      set: data.tags.map(id => ({ id })),
+    };
+  }
 
   const post = await prisma.post.update({
     where: { id },
@@ -110,13 +225,26 @@ async function updatePublication(id, userId, data) {
         },
       },
       attachments: true,
+      comments: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          author: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      },
+      tags: true,
     },
   });
 
   return mapPostToResponse(post);
 }
 
-async function deletePublication(id, userId) {
+async function deletePublication(id, user) {
   const existing = await prisma.post.findUnique({
     where: { id },
   });
@@ -127,7 +255,7 @@ async function deletePublication(id, userId) {
     throw error;
   }
 
-  if (existing.authorId !== userId) {
+  if (existing.authorId !== user.id && user.role !== 'admin') {
     const error = new Error("No tienes permiso para eliminar esta publicación");
     error.statusCode = 403;
     throw error;
@@ -143,15 +271,42 @@ async function deletePublication(id, userId) {
     where: { id },
     data: {
       deletedAt: new Date(),
+      status: "HIDDEN",
     },
   });
 
   return { id: post.id, deletedAt: post.deletedAt };
 }
 
+async function getPublicationAttachments(postId) {
+  const post = await prisma.post.findUnique({ where: { id: postId } });
+
+  if (!post || post.deletedAt) {
+    const error = new Error("Publicación no encontrada");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const attachments = await prisma.postAttachment.findMany({
+    where: { postId },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return attachments.map((att) => {
+    const folder = att.type === "IMAGE" ? "images" : "documents";
+    const diskPath = path.join(PUBLIC_DIR, folder, att.filename);
+    return {
+      ...att,
+      existsOnDisk: fs.existsSync(diskPath),
+    };
+  });
+}
+
 module.exports = {
   createPublication,
   getPublicationFeed,
+  getPublicationById,
   updatePublication,
   deletePublication,
+  getPublicationAttachments,
 };

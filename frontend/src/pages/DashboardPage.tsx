@@ -1,9 +1,36 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { RoleBadge, UserStatusBadge } from '../components/Badge';
+import Button from '../components/Button';
+import CreatePublicationModal from '../components/CreatePublicationModal';
+import PublicationCard from '../components/PublicationCard';
+import { getPublications } from '../api/publication.service';
+import type { Publication } from '../types';
 
 export default function DashboardPage() {
   const { user, profile } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [recentPublications, setRecentPublications] = useState<Publication[]>([]);
+  const [loadingFeed, setLoadingFeed] = useState(false);
+
+  const fetchRecentPublications = async () => {
+    setLoadingFeed(true);
+    try {
+      const data = await getPublications();
+      setRecentPublications(data.slice(0, 5));
+    } catch (err) {
+      console.error('Error fetching recent publications:', err);
+    } finally {
+      setLoadingFeed(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchRecentPublications();
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -90,41 +117,49 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {user.role === 'admin' ? (
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-            <h2 className="text-base font-semibold text-slate-900">
-              Panel administrativo
-            </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Gestiona usuarios y revisa las solicitudes pendientes.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link
-                to="/admin/usuarios"
-                className="inline-flex rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-              >
-                Usuarios
-              </Link>
-              <Link
-                to="/admin/solicitudes"
-                className="inline-flex rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Solicitudes
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 flex flex-col">
+          <div className="flex items-center justify-between gap-4">
             <h2 className="text-base font-semibold text-slate-900">
               Comunidad pedagógica
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Próximamente: feed de publicaciones, recursos y comentarios entre
-              colegas.
-            </p>
+            <Button size="sm" onClick={() => setIsModalOpen(true)}>
+              + Nueva publicación
+            </Button>
           </div>
-        )}
+          <p className="mt-1 text-sm text-slate-600">
+            Últimas publicaciones de tus colegas.
+          </p>
+
+          <div className="mt-4 flex-1 space-y-3">
+            {loadingFeed ? (
+              <p className="text-xs text-slate-400">Cargando...</p>
+            ) : recentPublications.length === 0 ? (
+              <p className="text-xs text-slate-500 italic">No hay publicaciones recientes.</p>
+            ) : (
+              recentPublications.map((pub) => (
+                <PublicationCard
+                  key={pub.id}
+                  pub={pub}
+                  onDelete={fetchRecentPublications}
+                />
+              ))
+            )}
+          </div>
+          
+          <Link
+            to="/feed"
+            className="mt-4 inline-flex text-sm font-medium text-brand-700 hover:text-brand-800"
+          >
+            Ver todo el feed →
+          </Link>
+        </div>
       </div>
+
+      <CreatePublicationModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchRecentPublications}
+      />
     </div>
   );
 }

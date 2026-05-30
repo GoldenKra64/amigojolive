@@ -19,7 +19,7 @@ async function response(prompt) {
         const response = await client.chat.completions.create({
             model: "deepseek-v4-flash",
             messages,
-            max_tokens: 200,
+            max_tokens: 1000,
             temperature: 0.7
         })
 
@@ -40,7 +40,7 @@ async function chat(messages) {
         const response = await client.chat.completions.create({
             model: "deepseek-v4-flash",
             messages: allMessages,
-            max_tokens: 200,
+            max_tokens: 1500,
             temperature: 0.7
         });
 
@@ -62,7 +62,7 @@ async function chatStream(messages, onToken) {
         const stream = await client.chat.completions.create({
             model: "deepseek-v4-flash",
             messages: allMessages,
-            max_tokens: 200,
+            max_tokens: 1500,
             temperature: 0.7,
             stream: true
         });

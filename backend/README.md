@@ -118,6 +118,37 @@ npx prisma generate
 npm run dev
 ```
 
+### Base de datos local con Docker
+
+En la raíz del monorepo existe `docker-compose.yml` con PostgreSQL 16 (`amigo` / `amigo_dev`, base `amigojolive`).
+
+```bash
+docker compose up -d postgres
+```
+
+En `backend/.env`, use por ejemplo:
+
+- `DATABASE_URL=postgresql://amigo:amigo_dev@localhost:5432/amigojolive`
+- `DIRECT_URL=` (misma cadena suele funcionar bien en desarrollo)
+- Deje vacío `DATABASE_APP_URL`, o use solo una cadena válida si la necesita en producción hosteada.
+
+Aplique migraciones y ejecute el seed del administrador:
+
+```bash
+cd backend
+npx prisma generate
+npm run prisma:deploy
+npm run db:seed
+```
+
+Con Prisma 7, la URL que usa **Migrate** viene de `prisma.config.ts` (variable `DATABASE_URL`).
+
+Para hosts remotos cloud (RDS, Supabase, etc.), el adaptador usa TLS con `rejectUnauthorized: false`; en **localhost** el SSL del pool se desactiva automáticamente.
+
+### Railway: volumen de adjuntos
+
+Monte el volumen persistente en la misma ruta física donde el proceso escribe `backend/public/` (adjuntos Multer estáticos por `/public/...`). Si cambia la ruta de despliegue, verifique las rutas resueltas en `src/app.js` y `publication-upload.middleware`.
+
 ---
 
 ## 🧪 Testing

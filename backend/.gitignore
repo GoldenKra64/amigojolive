@@ -4,5 +4,4 @@ node_modules
 
 /src/generated/prisma
 .vs
-
-prisma.config.ts
+public

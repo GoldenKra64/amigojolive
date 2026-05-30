@@ -1,5 +1,17 @@
 const { z } = require("zod");
 
+const tagsSchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return [value];
+}, z.array(z.coerce.number().int().positive()));
+
 const createPublicationDto = z.object({
   title: z
     .string()
@@ -11,7 +23,7 @@ const createPublicationDto = z.object({
     .string()
     .trim()
     .min(1, "El contenido es obligatorio"),
-
+      
   isAnonymous: z
     .union([
       z.boolean(),
@@ -20,6 +32,8 @@ const createPublicationDto = z.object({
       )
     ])
     .optional(),
+
+    tags: tagsSchema.default([]),
 });
 
 const updatePublicationDto = z.object({
@@ -37,7 +51,10 @@ const updatePublicationDto = z.object({
     .optional(),
 
   isAnonymous: z
-    .boolean()
+    .union([
+      z.boolean(),
+      z.string().transform(value => value === "true"),
+    ])
     .optional(),
 
   status: z.enum([
@@ -45,9 +62,26 @@ const updatePublicationDto = z.object({
     "ARCHIVED",
     "HIDDEN",
   ]).optional(),
+
+  tags: tagsSchema.optional(),
+});
+
+const listPublicationsDto = z.object({
+  tagIds: z
+    .preprocess(
+      (v) => {
+        if (v === undefined || v === null || v === "") return undefined;
+        if (typeof v === "string") return v.split(",").map((s) => s.trim()).filter(Boolean);
+        if (Array.isArray(v)) return v;
+        return [v];
+      },
+      z.array(z.coerce.number().int().positive()).optional()
+    )
+    .optional(),
 });
 
 module.exports = {
   createPublicationDto,
   updatePublicationDto,
+  listPublicationsDto,
 };

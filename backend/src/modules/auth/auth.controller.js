@@ -44,7 +44,7 @@ async function me(req, res, next) {
     
     const apiResponse = new ApiResponse(true, 200, "Información de usuario obtenida exitosamente", user);
 
-    return res.status(200).json(ApiResponse);
+    return res.status(200).json(apiResponse);
   } catch (error) {
     next(error);
   }
