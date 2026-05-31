@@ -5,6 +5,7 @@ import type {
   Comment,
   ReactionSummary,
   ReactionType,
+  PaginatedResponse,
 } from '../types';
 
 export interface ReactionState {
@@ -12,12 +13,15 @@ export interface ReactionState {
   myReaction: ReactionType | null;
 }
 
-export async function getPublications(tagIds?: number[]): Promise<Publication[]> {
-  const params: Record<string, string> = {};
+export async function getPublications(tagIds?: number[], page: number = 1, limit: number = 10): Promise<PaginatedResponse<Publication>> {
+  const params: Record<string, string> = {
+    page: page.toString(),
+    limit: limit.toString(),
+  };
   if (tagIds && tagIds.length > 0) {
     params.tagIds = tagIds.join(',');
   }
-  const response = await apiClient.get<ApiResponse<Publication[]>>('/publications', { params });
+  const response = await apiClient.get<ApiResponse<PaginatedResponse<Publication>>>('/publications', { params });
   return response.data.data;
 }
 

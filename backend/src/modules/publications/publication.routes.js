@@ -28,14 +28,12 @@ router.post(
 router.get(
   "/",
   authMiddleware,
-  requireRole("docente", "admin"),
   publicationController.getPublicationFeed
 );
 
 router.get(
   "/:id",
   authMiddleware,
-  requireRole("docente", "admin"),
   publicationController.getPublicationById
 );
 

@@ -18,7 +18,7 @@ export default function DashboardPage() {
     setLoadingFeed(true);
     try {
       const data = await getPublications();
-      setRecentPublications(data.slice(0, 5));
+      setRecentPublications(data.items.slice(0, 5));
     } catch (err) {
       console.error('Error fetching recent publications:', err);
     } finally {
@@ -145,7 +145,7 @@ export default function DashboardPage() {
               ))
             )}
           </div>
-          
+
           <Link
             to="/feed"
             className="mt-4 inline-flex text-sm font-medium text-brand-700 hover:text-brand-800"
