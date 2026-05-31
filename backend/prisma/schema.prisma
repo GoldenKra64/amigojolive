@@ -61,6 +61,7 @@ model User {
   posts              Post[]
   comments           Comment[]
   reactions          PostReaction[]
+  reports            Reports[]
 
   reviewedRegistrationRequests RegistrationRequest[] @relation("ReviewedRegistrationRequests")
   securityIncidents  SecurityIncident[]
@@ -87,6 +88,23 @@ model TeacherProfile {
   @@map("perfiles_docente")
 }
 
+model Reports {
+  id        Int @id @default(autoincrement())
+
+  userId    Int
+  user      User @relation(fields: [userId], references: [id])
+
+  postId    Int
+  post      Post @relation(fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, postId])
+
+  @@map("reportes")
+}
+
 model Post {
   id          Int      @id @default(autoincrement())
   title       String
@@ -100,6 +118,7 @@ model Post {
   comments    Comment[]
   tags        Tag[]
   reactions   PostReaction[]
+  reports     Reports[]
 
   attachments PostAttachment[]
   securityIncidents SecurityIncident[]

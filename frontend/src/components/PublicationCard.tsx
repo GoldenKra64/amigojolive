@@ -9,6 +9,7 @@ import {
   removePublicationReaction,
 } from '../api/publication.service';
 import { getPublicFilesBaseUrl } from '../api/client';
+import { createReport } from '../api/reports.service';
 import { useToast } from './Toast';
 import type { Publication, Comment, ReactionSummary, ReactionType } from '../types';
 
@@ -51,6 +52,7 @@ export default function PublicationCard({ pub, onDelete }: PublicationCardProps)
   );
   const [isReacting, setIsReacting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
   const { user } = useAuth();
   const { success, error } = useToast();
   const canDelete = user?.role === 'admin' || user?.id === pub.author.id;
@@ -155,6 +157,21 @@ export default function PublicationCard({ pub, onDelete }: PublicationCardProps)
     }
   };
 
+  const handleReport = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('¿Seguro que deseas reportar esta publicación por contenido inapropiado?')) return;
+    setIsReporting(true);
+    try {
+      await createReport(pub.id);
+      success('Publicación reportada correctamente. Los administradores revisarán el caso.');
+    } catch (err) {
+      error('Error al reportar la publicación.');
+      console.error(err);
+    } finally {
+      setIsReporting(false);
+    }
+  };
+
   return (
     <div
       className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 cursor-pointer hover:bg-slate-50 transition-colors"
@@ -244,41 +261,54 @@ export default function PublicationCard({ pub, onDelete }: PublicationCardProps)
               Autor: {pub.author.firstName} {pub.author.lastName}
               {pub.isAnonymous && <span className="ml-2 text-slate-400 italic">(Anónimo)</span>}
             </p>
-            {canDelete && (
-              <div className="flex gap-2">
-                {user?.id === pub.author.id && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleReport}
+                disabled={isReporting}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition-colors disabled:opacity-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                {isReporting ? 'Reportando...' : 'Reportar'}
+              </button>
+              
+              {canDelete && (
+                <>
+                  {user?.id === pub.author.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditTitle(localTitle);
+                        setEditContent(localContent);
+                        setIsEditing(!isEditing);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                    >
+                      Editar
+                    </button>
+                  )}
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditTitle(localTitle);
-                      setEditContent(localContent);
-                      setIsEditing(!isEditing);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                    onClick={handleDelete}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
                   >
-                    Editar
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-4 w-4"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.75 1A2.75 2.75 0 006 3.75V4H5a2 2 0 00-2 2v.092c0 .546.401.992.945 1.041l.37 3.518a4.25 4.25 0 004.225 3.849h3.42a4.25 4.25 0 004.225-3.849l.37-3.518A1.05 1.05 0 0017 6.092V6a2 2 0 00-2-2h-1V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4.5h2.5V4h-2.5v.5zM7.5 4h5v-.25A1.25 1.25 0 0011.25 2.5h-2.5A1.25 1.25 0 007.5 3.75V4zM5 5.5h10V6H5v-.5z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Borrar
                   </button>
-                )}
-                <button
-                  onClick={handleDelete}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-4 w-4"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8.75 1A2.75 2.75 0 006 3.75V4H5a2 2 0 00-2 2v.092c0 .546.401.992.945 1.041l.37 3.518a4.25 4.25 0 004.225 3.849h3.42a4.25 4.25 0 004.225-3.849l.37-3.518A1.05 1.05 0 0017 6.092V6a2 2 0 00-2-2h-1V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4.5h2.5V4h-2.5v.5zM7.5 4h5v-.25A1.25 1.25 0 0011.25 2.5h-2.5A1.25 1.25 0 007.5 3.75V4zM5 5.5h10V6H5v-.5z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Borrar
-                </button>
-              </div>
-            )}
+                </>
+              )}
+            </div>
           </div>
           {isEditing ? (
             <form onSubmit={handleUpdate} className="flex flex-col gap-3 my-4" onClick={(e) => e.stopPropagation()}>

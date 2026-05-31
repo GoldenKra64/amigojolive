@@ -11,6 +11,8 @@ export default function FeedPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -21,12 +23,22 @@ export default function FeedPage() {
       .catch(() => {});
   }, []);
 
-  const fetchPublications = useCallback(async (tagIds: number[] = []) => {
+  const fetchPublications = useCallback(async (tagIds: number[] = [], pageNum: number = 1) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await getPublications(tagIds.length > 0 ? tagIds : undefined);
-      setPublications(data);
+      const data = await getPublications(tagIds.length > 0 ? tagIds : undefined, pageNum, 10);
+      if (pageNum === 1) {
+        setPublications(data.items);
+      } else {
+        setPublications((prev) => {
+          // Avoid duplicates if called twice quickly
+          const existingIds = new Set(prev.map(p => p.id));
+          const newItems = data.items.filter(p => !existingIds.has(p.id));
+          return [...prev, ...newItems];
+        });
+      }
+      setHasMore(data.page < data.totalPages);
     } catch (err) {
       setError('No se pudieron cargar las publicaciones.');
       console.error(err);
@@ -36,8 +48,16 @@ export default function FeedPage() {
   }, []);
 
   useEffect(() => {
-    fetchPublications(selectedTagIds);
+    setPage(1);
+    fetchPublications(selectedTagIds, 1);
   }, [selectedTagIds, fetchPublications]);
+
+  const handleLoadMore = () => {
+    if (isLoading) return;
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchPublications(selectedTagIds, nextPage);
+  };
 
   const toggleTag = (id: number) => {
     setSelectedTagIds((prev) =>
@@ -108,16 +128,27 @@ export default function FeedPage() {
             <PublicationCard
               key={pub.id}
               pub={pub}
-              onDelete={() => fetchPublications(selectedTagIds)}
+              onDelete={() => fetchPublications(selectedTagIds, 1)}
             />
           ))
+        )}
+
+        {hasMore && (
+          <div className="flex justify-center mt-4">
+            <Button onClick={handleLoadMore} disabled={isLoading}>
+              {isLoading ? 'Cargando...' : 'Cargar más'}
+            </Button>
+          </div>
         )}
       </div>
 
       <CreatePublicationModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={() => fetchPublications(selectedTagIds)}
+        onSuccess={() => {
+          setPage(1);
+          fetchPublications(selectedTagIds, 1);
+        }}
       />
     </div>
   );

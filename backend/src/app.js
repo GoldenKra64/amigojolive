@@ -3,7 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 
-const routes = require("./routes");
+const routes = require("./routes/v1");
 const errorMiddleware = require("./middlewares/error.middleware");
 
 const app = express();
@@ -12,7 +12,7 @@ const PUBLIC_DIR = path.resolve(__dirname, "../public");
 const FRONTEND_DIST = path.resolve(__dirname, "../../frontend/dist");
 
 const allowedOrigins = [
-  'https://amigojolive.onrender.com',
+  process.env.FRONTEND_URL,
   'http://localhost:5173',
   'http://localhost:4173',
 ];

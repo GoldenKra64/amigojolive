@@ -23,13 +23,17 @@ async function getPublicationFeed(req, res, next) {
   try {
     const parsed = listPublicationsDto.safeParse(req.query);
     const tagIds = parsed.success ? parsed.data.tagIds : undefined;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    const publications = await publicationService.getPublicationFeed({
+    const publicationsData = await publicationService.getPublicationFeed({
       tagIds,
       currentUserId: req.user.id,
+      page,
+      limit,
     });
 
-    return res.status(200).json(new ApiResponse(true, 200, "Publicaciones obtenidas correctamente", publications));
+    return res.status(200).json(new ApiResponse(true, 200, "Publicaciones obtenidas correctamente", publicationsData));
   } catch (error) {
     next(error);
   }

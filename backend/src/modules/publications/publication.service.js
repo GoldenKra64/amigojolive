@@ -28,19 +28,20 @@ function mapPostToResponse(post, currentUserId) {
     myReaction: getMyReaction(reactions, currentUserId),
     author: shouldHideAuthor
       ? {
-          id: null,
-          firstName: "Anónimo",
-          lastName: "",
-          institutionalEmail: null,
-          role: null,
-        }
+        id: null,
+        firstName: "Anónimo",
+        lastName: "",
+        institutionalEmail: null,
+        role: null,
+      }
       : {
-          id: post.author.id,
-          firstName: post.author.firstName,
-          lastName: post.author.lastName,
-          institutionalEmail: post.author.institutionalEmail,
-          role: post.author.role?.name,
-        },
+        id: post.author.id,
+        firstName: post.author.firstName,
+        lastName: post.author.lastName,
+        institutionalEmail: post.author.institutionalEmail,
+        role: post.author.role?.name,
+      },
+    reportCount: post._count?.Reports || 0,
   };
 }
 
@@ -121,48 +122,68 @@ async function createPublication({ title, content, isAnonymous, authorId, files 
   return mapPostToResponse(post, authorId);
 }
 
-async function getPublicationFeed({ tagIds, currentUserId } = {}) {
-  const posts = await prisma.post.findMany({
-    where: {
-      status: "PUBLISHED",
-      deletedAt: null,
-      ...(tagIds && tagIds.length > 0 && {
-        tags: { some: { id: { in: tagIds } } },
-      }),
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      author: {
-        include: {
-          role: true,
-        },
+async function getPublicationFeed({ tagIds, currentUserId, page = 1, limit = 10 } = {}) {
+  const skip = (page - 1) * limit;
+
+  const whereClause = {
+    status: "PUBLISHED",
+    deletedAt: null,
+    ...(tagIds && tagIds.length > 0 && {
+      tags: { some: { id: { in: tagIds } } },
+    }),
+  };
+
+  const [total, posts] = await Promise.all([
+    prisma.post.count({ where: whereClause }),
+    prisma.post.findMany({
+      where: whereClause,
+      orderBy: {
+        createdAt: "desc",
       },
-      attachments: true,
-      comments: {
-        orderBy: {
-          createdAt: "asc",
+      skip,
+      take: limit,
+      include: {
+        /*
+        _count: {
+          select: { Reports: true }
         },
-        include: {
-          author: {
-            include: {
-              role: true,
+        */
+        author: {
+          include: {
+            role: true,
+          },
+        },
+        attachments: true,
+        comments: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          include: {
+            author: {
+              include: {
+                role: true,
+              },
             },
           },
         },
-      },
-      tags: true,
-      reactions: {
-        select: {
-          type: true,
-          userId: true,
+        tags: true,
+        reactions: {
+          select: {
+            type: true,
+            userId: true,
+          },
         },
       },
-    },
-  });
+    })
+  ]);
 
-  return posts.map((post) => mapPostToResponse(post, currentUserId));
+  return {
+    items: posts.map((post) => mapPostToResponse(post, currentUserId)),
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 async function getPublicationById(id, currentUserId) {
