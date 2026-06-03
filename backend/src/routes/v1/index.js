@@ -6,6 +6,7 @@ const registrationRequestRoutes = require("../../modules/registrationRequests/re
 const userRoutes = require("../../modules/users/user.routes");
 const profileRoutes = require("../../modules/profiles/profile.routes");
 const chatbotRoutes = require("../../modules/chatbot/chatbot.routes");
+const aiRoutes = require("../../modules/ai/ai.routes");
 const publicationRoutes = require("../../modules/publications/publication.routes");
 const commentRoutes = require("../../modules/comments/comment.routes");
 
@@ -43,6 +44,9 @@ router.use("/reports", reportsRoutes);
 
 // Chatbot
 router.use("/chatbot", chatbotRoutes);
+
+// IA (clasificación MCP)
+router.use("/ai", aiRoutes);
 
 // Posts
 router.use("/categories", categoryRoutes);

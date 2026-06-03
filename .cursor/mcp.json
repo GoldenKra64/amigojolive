@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "amigojolive-posts": {
+      "command": "node",
+      "args": ["src/mcp/posts-server.js"],
+      "cwd": "${workspaceFolder}/backend",
+      "env": {
+        "MCP_DEV_ROLE": "docente"
+      }
+    }
+  }
+}

@@ -82,8 +82,51 @@ async function chatStream(messages, onToken) {
     }
 }
 
+async function chatWithTools({ messages, tools, toolChoice = "auto", maxTokens, systemPrompt }) {
+    try {
+        const existingSystem = messages.find((m) => m.role === "system")?.content;
+        const filtered = messages.filter((m) => m.role !== "system");
+        const allMessages = [
+            { role: "system", content: systemPrompt ?? existingSystem ?? SYSTEM_PROMPT },
+            ...filtered,
+        ];
+
+        const response = await client.chat.completions.create({
+            model: "deepseek-v4-flash",
+            messages: allMessages,
+            tools: tools?.length ? tools : undefined,
+            tool_choice: tools?.length ? toolChoice : undefined,
+            max_tokens: maxTokens ?? 1500,
+            temperature: 0.7,
+        });
+
+        return response.choices[0].message;
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+}
+
+async function chatCompletionRaw({ messages, maxTokens, temperature = 0.3 }) {
+    try {
+        const response = await client.chat.completions.create({
+            model: "deepseek-v4-flash",
+            messages,
+            max_tokens: maxTokens ?? 800,
+            temperature,
+        });
+        return response.choices[0].message.content;
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+}
+
 module.exports = {
     response,
     chat,
-    chatStream
-}
+    chatStream,
+    chatWithTools,
+    chatCompletionRaw,
+    SYSTEM_PROMPT,
+};
